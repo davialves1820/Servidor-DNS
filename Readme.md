@@ -3,7 +3,8 @@
 ## 👥 Integrantes
 - Davi Alves Rodrigues
 - Ryan Caetano Cesar de Araújo
-- Diego
+- Diego de Carvalho Dias
+  
 ---
 
 ## 📖 Descrição do Projeto
