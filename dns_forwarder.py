@@ -1,8 +1,5 @@
 import socket # Permite enviar e receber pacotes UDP
-import struct # Para empacotar e desempacotar bytes, formato de mensagens DNS
-import threading # Permite atender múltiplos clientes simultaneamente, criando threads para cada requisição DNS]
-from dnslib import DNSRecord # Biblioteca para facilitar a construção de pacotes DNS
-import random
+from dnslib import DNSRecord, DNSHeader, DNSQuestion, QTYPE # Biblioteca para facilitar a construção de pacotes DNS
 
 UPSTREAM_DNS = ("8.8.8.8", 53) # Servidor Google Public DNS, rápido e confiável
 
@@ -19,36 +16,55 @@ def build_query(domain, query_type="A"):
     Constrói um pacote DNS de consulta para enviar ao servidor upstream
     """
     
-    # Cabeçalho DNS de 12 bytes: ID, Flags, QDCOUNT, ANCOUNT, NSCOUNT, ARCOUNT
-    transaction_id = random.randint(0, 0xFFFF) # Gera um ID de 16 bits
-    flags = 0x0100 # Define as características da consulta
-    qdcount = 1 # Número de perguntas na seção
-    header = struct.pack(">HHHHHH", transaction_id, flags, qdcount, 0, 0, 0)
-
-    # Nome do domínio em formato DNS
-    qname = b"".join(
-        bytes([len(part)]) + part.encode() for part in domain.split(".")
-    ) + b"\x00"
-
-    qtype = QUERY_TYPES.get(query_type.upper(), 1) # Tipo de registro que está sendo consultado
-    qclass = 1
-
-    question = qname + struct.pack(">HH", qtype, qclass) # Empacota o tipo e a classe da pergunta
-
-    return header + question # Retorna o pacote completo
+    qtype_enum = QTYPE.get(query_type.upper(), QTYPE.A) # Usa enumeração de dnslib
+    request = DNSRecord(
+        q=DNSQuestion(domain, qtype_enum)
+    )
+    return request.pack() # dnslib cuida do empacotamento
 
 def query_upstream(domain, query_type="A"):
     """
     Envia uma consulta DNS para o servidor upstream via UDP e retorna a resposta.
     """
-    packet = build_query(domain, query_type) 
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # Cria um socket
-    s.settimeout(5) # Define um tempo limite de resposta de 5 segundos
-    s.sendto(packet, UPSTREAM_DNS) # Envia os dados da consulta DNS para um servidor upstream
-    response, _ = s.recvfrom(512) # Recebe resposta do servidor
+    
+    try:
+        qtype_enum = QTYPE.get(query_type.upper(), QTYPE.A)
+        request = DNSRecord(q=DNSQuestion(domain, qtype_enum))
 
-    return response
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.settimeout(5)
+        sock.sendto(request.pack(), UPSTREAM_DNS)
+        response_data, _ = sock.recvfrom(1024) # Buffer maior para respostas
+        return response_data
+    except socket.timeout:
+        print("Timeout ao consultar servidor upstream.")
+        return None
+    except Exception as e:
+        print(f"Erro ao consultar servidor upstream: {e}")
+        return None
+
+def parse_query(data):
+    """
+    Faz o parsing de uma consulta DNS recebida de um cliente.
+    """
+
+    try:
+        d = DNSRecord.parse(data)
+        transaction_id = d.header.id
+        domain = str(d.q.qname) # Fácil acesso ao nome
+        qtype = d.q.qtype # Fácil acesso ao tipo
+        return transaction_id, domain, qtype
+    except Exception as e:
+        # Tratar erros de parsing
+        print(f"Erro ao parsear consulta: {e}")
+        return None, None, None
+
 
 if __name__ == "__main__":
-    raw_response = query_upstream("example.com", "MX")
-    print("Resposta recebida com", len(raw_response), "bytes") # Indica que o pacote de consulta foi aceito e houve resposta
+    # Exemplo 1: Construir e parsear uma consulta
+    domain_to_query = "www.google.com"
+    query_packet = build_query(domain_to_query, "A")
+    print(f"Consulta DNS construída para {domain_to_query}: {query_packet.hex()}")
+
+    parsed_tid, parsed_domain, parsed_type = parse_query(query_packet)
+    print(f"TID: {parsed_tid}, Domínio: {parsed_domain}, Tipo: {parsed_type}")
