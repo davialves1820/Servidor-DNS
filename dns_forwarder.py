@@ -1,5 +1,5 @@
 import socket  # Permite criar soquetes para enviar e receber pacotes UDP
-from dnslib import DNSRecord, DNSHeader, DNSQuestion, QTYPE  # Biblioteca que facilita a criação e análise de pacotes DNS
+from dnslib import DNSRecord, DNSHeader, DNSQuestion, QTYPE, RCODE  # Biblioteca que facilita a criação e análise de pacotes DNS
 from dns_cache import DNSCache
 from dns_blocklist import blocklist_cache
 
@@ -114,8 +114,27 @@ def parse_response(data):
         print(f"Erro ao parsear resposta: {e}")
         return [], None
 
+def get_blocked_response(id_transicao):
+    
+    """ 
+    Gera uma resposta NXDOMAIN para domínios bloqueados
+    """
+    
+    # Converter de bytes para inteiro, se necessário
+    if isinstance(id_transicao, bytes):
+        id_transicao = int.from_bytes(id_transicao, "big")
+    
+    response = DNSRecord(
+        header=DNSHeader(id=id_transicao, qr=1, rcode=RCODE.NXDOMAIN),
+        q=DNSQuestion("blocked.domain", QTYPE.A)
+    )
+
+    return response.pack()
+
 
 if __name__ == "__main__":
+
+    
     cache = DNSCache(tamanho_maximo_bytes=50 * 1024)  # cache com 50 KB
     blocklist = blocklist_cache() # Pode demorar no primeiro download
     domain_to_query = "www.google.com"
@@ -191,3 +210,9 @@ if __name__ == "__main__":
 #             print("  Nenhum registro A encontrado na resposta.")
 #     else:
 #         print("Não foi possível obter resposta do servidor upstream.")
+
+#     Exemplo 3: Gerar uma resposta NXDOMAIN
+#     Suponha que a consulta original tivesse o transaction_id b'\x4e\x69'
+#     original_transaction_id = b'\x4e\x69'
+#     nxdomain_response = get_blocked_response(original_transaction_id)
+#     print(f"\nResposta NXDOMAIN gerada: {nxdomain_response.hex()}")
