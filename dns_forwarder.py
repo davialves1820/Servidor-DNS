@@ -6,7 +6,6 @@ from dns_functions import query_upstream, parse_query, parse_response, get_block
 
 from config import UPSTREAM_DNS
 
-
 if __name__ == "__main__":
 
     
