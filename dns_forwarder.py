@@ -132,6 +132,23 @@ def get_blocked_response(id_transicao):
     return response.pack()
 
 
+def get_blocked_response(id_transicao):
+    
+    """ 
+    Gera uma resposta NXDOMAIN para domínios bloqueados
+    """
+    
+    # Converter de bytes para inteiro, se necessário
+    if isinstance(id_transicao, bytes):
+        id_transicao = int.from_bytes(id_transicao, "big")
+    
+    response = DNSRecord(
+        header=DNSHeader(id=id_transicao, qr=1, rcode=RCODE.NXDOMAIN),
+        q=DNSQuestion("blocked.domain", QTYPE.A)
+    )
+
+    return response.pack()
+
 if __name__ == "__main__":
 
     
