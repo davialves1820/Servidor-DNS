@@ -6,10 +6,6 @@ class DNSCache:
     def __init__(self, tamanho_maximo_bytes = 10 * 1024):
         """
         Inicializa o cache DNS.
-
-        Parâmetros:
-        - tamanho_maximo_bytes: capacidade máxima estimada do cache em bytes.
-          (Usamos uma estimativa simples com sys.getsizeof para chave/valor.)
         """
         self.tamanho_maximo_bytes = tamanho_maximo_bytes
         self.tamanho_atual_bytes = 0
@@ -62,9 +58,6 @@ class DNSCache:
             "expire_at": expire_at,
             "size": tamanho_entrada,
         }
-
-        # Garante que a chave esteja no final (mais recentemente usada)
-        self.cache.move_to_end(key)
 
         # Atualiza contador total de bytes no cache
         self.tamanho_atual_bytes += tamanho_entrada
