@@ -1,5 +1,5 @@
 import socket  # Permite criar soquetes para enviar e receber pacotes UDP
-from dnslib import DNSRecord, DNSHeader, DNSQuestion, QTYPE  # Biblioteca que facilita a criação e análise de pacotes DNS
+from dnslib import DNSRecord, DNSHeader, DNSQuestion, QTYPE, RCODE  # Biblioteca que facilita a criação e análise de pacotes DNS
 
 # Endereço do servidor DNS upstream (a quem enviaremos as consultas)
 UPSTREAM_DNS = ("8.8.8.8", 53)  # Servidor público da Google (porta 53 é a padrão de DNS)
