@@ -36,7 +36,23 @@ O sistema atua como um intermediário entre o cliente e os servidores DNS upstre
    ```bash
     git clone https://github.com/davialves1820/Servidor-DNS
     cd Servidor-DNS
+
+    venv\Scripts\activate # Ativar o servidor venv
+
+    cd servidor_dns # Entrar na pasta do projeto
+
+    python manage.py runserver # Executar o projeto
+
+    url: http://127.0.0.1:8000/
+
    ```
+
+  **Encerrar a execução**
+  ```
+  Ctrl c no terminal encerra o servidor
+
+  deactivate encerra o servidor venv
+  ```
 
 ---
 
