@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DNS</title>
+    <style>
+        /* Estilos gerais para o corpo da página */
+        body {
+            font-family: sans-serif; 
+            margin: 20px; 
+        }
+
+        /* Estilos para os títulos principais */
+        h1, h2 {
+            color: #333; 
+        }
+
+        /* Estilos para as tabelas */
+        table {
+            border-collapse: collapse; /* Junta as bordas das células */
+            width: 100%; 
+            margin-top: 15px;
+        }
+
+        /* Estilos para cabeçalhos (th) e células de dados da tabela */
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px; 
+            text-align: left; 
+        }
+
+        /* Estilos específicos para os cabeçalhos da tabela */
+        th {
+            background-color: #f2f2f2;
+        }
+
+        /* Estilo para indicar que o cache está vazio */
+        .cache-empty {
+            font-style: italic; 
+            color: #777; 
+        }
+
+        /* Estilos para o contêiner principal da página */
+        .container {
+            max-width: 900px; 
+            margin: auto; 
+            background: #fff; 
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1); 
+        }
+
+        /* Estilos para o formulário */
+        form {
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 15px; 
+            align-items: center; 
+            margin-bottom: 20px; 
+        }
+
+        /* Estilos para os rótulos */
+        label {
+            margin-right: 5px; 
+            font-weight: bold; 
+        }
+
+        /* Estilos para campos de texto e selects */
+        input[type="text"], select {
+            padding: 10px; 
+            border-radius: 5px; 
+            border: 1px solid #ccc;
+        }
+
+        /* Estilos para o botão de submissão */
+        button[type="submit"] {
+            background-color: #007bff; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px;
+            cursor: pointer; 
+            transition: background-color 0.3s ease; 
+        }
+
+        /* Estilo de hover para o botão de submissão */
+        button[type="submit"]:hover {
+            background-color: #0056b3; 
+        }
+
+        /* Permite que o texto em células quebre em várias linhas se for muito longo */
+        td {
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DNS</h1>
+
+        <h2>Blocklist</h2>
+        <p>Total de domínios bloqueados: <strong>{{ blocked_domains_count }}</strong></p>
+
+        <h2>Consultar Domínio</h2>
+        <form method="get" action="{% url 'query_domain' %}">
+            <label for="domain">Domínio:</label>
+            <input type="text" id="domain" name="domain" required placeholder="ex: google.com">
+
+            <label for="type">Tipo:</label>
+            <select id="type" name="type">
+                <option value="A">A</option> <option value="AAAA">AAAA</option> <option value="MX">MX</option> <option value="TXT">TXT</option> </select>
+
+            <button type="submit">Consultar</button>
+        </form>
+
+        <h2>Cache</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Nome</th> <th>Tipo</th> <th>Endereço</th> <th>Tempo restante</th> </tr>
+            </thead>
+            <tbody>
+                {% if cache %}
+                    {% for key, registros in cache.items %}
+                        {% for item in registros %}
+                            <tr>
+                                <td>{{ item.name }}</td> <td>{{ item.qtype }}</td> <td>{{ item.address }}</td> <td><span class="timer" data-seconds="{{ item.time_left }}"></span></td>
+                            </tr>
+                        {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="4" class="cache-empty">Nenhuma entrada no cache</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+    </div>
+
+    <script>
+
+        // Função para inicializar e gerenciar os contadores regressivos no cache
+        function startTimers() {
+            // Seleciona todos os elementos com a classe timer
+            const timers = document.querySelectorAll('.timer');
+
+            // Itera sobre cada elemento de timer encontrado
+            timers.forEach(timer => {
+                let seconds = parseInt(timer.dataset.seconds); // Obtém o tempo inicial em segundos do atributo data-seconds
+
+                // Função para atualizar o texto do timer
+                function update() {
+                    if (seconds > 0) {
+                        // Exibe o tempo restante
+                        timer.textContent = `restam ${seconds} segundos`;
+                        seconds--; 
+                    } else { // Exibe expirado quando o tempo acabar
+                        timer.textContent = 'expirado';
+                    }
+                }
+
+                update(); // Chama a função update imediatamente para mostrar o tempo inicial
+                
+                setInterval(update, 1000); // Configura um intervalo para chamar a função 'update' a cada segundo
+            });
+        }
+
+        // Adiciona um ouvinte de evento que executa 'startTimers' quando o DOM estiver completamente carregado
+        document.addEventListener('DOMContentLoaded', startTimers);
+    </script>
+</body>
+</html>
