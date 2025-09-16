@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+env/
+
+# Python-related
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.vscode/
+
+# Django-specific
+/media/
+/static_collected/
+db.sqlite3
+local_settings.py   
+
+# Operating System Files
+.DS_Store
+Thumbs.db
+
+# Cache
+*.pkl
