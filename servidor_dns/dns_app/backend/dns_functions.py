@@ -6,7 +6,8 @@ from .config import UPSTREAM_DNS
 QUERY_TYPES = {
     "A": 1,     # Resolve para endereços IPv4
     "AAAA": 28, # Resolve para endereços IPv6
-    "MX": 15    # Registros de servidor de e-mail
+    "MX": 15,   # Registros de servidor de e-mail
+    "TXT": 16   # Registros de texto
 }
 
 def build_query(domain, query_type="A"):
