@@ -4,7 +4,7 @@
     <title>DNS</title>
     <style>
         body { font-family: sans-serif; margin: 20px; }
-        h1, h2 { color: #333; }
+        h1,h2 { color: #333; }
         table { border-collapse: collapse; width: 100%; margin-top: 15px; }
         th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
         th { background-color: #f2f2f2; }
@@ -19,116 +19,114 @@
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>DNS</h1>
+    <div class="container">
+        <h1>DNS</h1>
 
-    <h2>Blocklist</h2>
-    <p>Total de domínios bloqueados: <strong>{{ blocked_domains_count }}</strong></p>
+        <h2>Blocklist</h2>
+        <p>Total de domínios bloqueados: <strong>{{ blocked_domains_count }}</strong></p>
 
-    <h2>Estatísticas</h2>
-    <p>Consultas obtidas do cache: <strong>{{ cache_hits }}</strong></p>
-    <p>Consultas obtidas do servidor DNS: <strong>{{ upstream_hits }}</strong></p>
+        <h2>Estatísticas</h2>
+        <p>Consultas obtidas do cache: <strong>{{ cache_hit_count }}</strong></p>
+        <p>Consultas obtidas do servidor DNS: <strong>{{ upstream_hit_count }}</strong></p>
 
+        <h2>Vazão do Servidor</h2>
+        <p>Total: <strong id="vazao-total">0 req/s</strong></p>
+        <p>Cache: <strong id="vazao-cache">0 req/s</strong></p>
+        <p>Upstream: <strong id="vazao-upstream">0 req/s</strong></p>
 
-    <h2>Consultar Domínio</h2>
-    <form method="get" action="{% url 'query_domain' %}">
-        <label for="domain">Domínio:</label>
-        <input type="text" id="domain" name="domain" required placeholder="ex: google.com">
+        <h2>Consultar Domínio</h2>
+        <form method="get" action="{% url 'query_domain' %}">
+            <label for="domain">Domínio:</label>
+            <input type="text" id="domain" name="domain" required placeholder="ex: google.com">
+            <label for="type">Tipo:</label>
+            <select id="type" name="type">
+                <option value="A">A</option>
+                <option value="AAAA">AAAA</option>
+                <option value="MX">MX</option>
+                <option value="TXT">TXT</option>
+            </select>
+            <button type="submit">Consultar</button>
+        </form>
 
-        <label for="type">Tipo:</label>
-        <select id="type" name="type">
-            <option value="A">A</option>
-            <option value="AAAA">AAAA</option>
-            <option value="MX">MX</option>
-            <option value="TXT">TXT</option>
-        </select>
+        <h2>Cache</h2>
+        <table>
+            <thead>
+                <tr><th>Nome</th><th>Tipo</th><th>Endereço</th><th>Tempo restante</th></tr>
+            </thead>
+            <tbody>
+                {% if cache %}
+                    {% for key, registros in cache.items %}
+                        {% for item in registros %}
+                            <tr>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.qtype }}</td>
+                                <td>{{ item.address }}</td>
+                                <td><span class="timer" data-seconds="{{ item.time_left }}"></span></td>
+                            </tr>
+                        {% endfor %}
+                    {% endfor %}
+                {% else %}
+                    <tr><td colspan="4" class="cache-empty">Nenhuma entrada no cache</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
 
-        <button type="submit">Consultar</button>
-    </form>
-
-    <h2>Cache</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>Nome</th>
-            <th>Tipo</th>
-            <th>Endereço</th>
-            <th>Tempo restante</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% if cache %}
-            {% for key, registros in cache.items %}
-                {% for item in registros %}
+        <h2>Últimas Consultas</h2>
+        {% if history %}
+        <table>
+            <thead>
+                <tr><th>Horário</th><th>Domínio</th><th>Tipo</th><th>Fonte</th><th>Tempo</th></tr>
+            </thead>
+            <tbody>
+                {% for item in history %}
                     <tr>
-                        <td>{{ item.name }}</td>
+                        <td>{{ item.timestamp }}</td>
+                        <td>{{ item.domain }}</td>
                         <td>{{ item.qtype }}</td>
-                        <td>{{ item.address }}</td>
-                        <td><span class="timer" data-seconds="{{ item.time_left }}"></span></td>
+                        <td>{{ item.source }}</td>
+                        <td>{{ item.elapsed_time }}</td>
                     </tr>
                 {% endfor %}
-            {% endfor %}
+            </tbody>
+        </table>
         {% else %}
-            <tr><td colspan="4" class="cache-empty">Nenhuma entrada no cache</td></tr>
+            <p class="cache-empty">Nenhuma consulta realizada ainda.</p>
         {% endif %}
-        </tbody>
-    </table>
 
-    <h2>Últimas Consultas</h2>
-    <table>
-        <thead>
-        <tr>
-            <th>Domínio</th>
-            <th>Tipo</th>
-            <th>Fonte</th>
-            <th>Tempo</th>
-            <th>Resultado</th>
-        </tr>
-        </thead>
-        <tbody>
-        {% if historico %}
-            {% for h in historico %}
-                <tr>
-                    <td>{{ h.domain }}</td>
-                    <td>{{ h.qtype }}</td>
-                    <td>{{ h.source }}</td>
-                    <td>{{ h.elapsed_time }}</td>
-                    <td>
-                        {% if h.result is string %}
-                            {{ h.result }}
-                        {% else %}
-                            {% for r in h.result %}
-                                {{ r.name }} → {{ r.address }}<br>
-                            {% endfor %}
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endfor %}
-        {% else %}
-            <tr><td colspan="5">Nenhuma consulta ainda.</td></tr>
-        {% endif %}
-        </tbody>
-    </table>
-</div>
+        
+    </div>
 
-<script>
-function startTimers() {
-    const timers = document.querySelectorAll('.timer');
-    timers.forEach(timer => {
-        let seconds = parseInt(timer.dataset.seconds);
-        function update() {
-            if (seconds > 0) {
-                timer.textContent = `restam ${seconds} segundos`;
-                seconds--;
-            } else {
-                timer.textContent = 'expirado';
+    <script>
+        function startTimers() {
+            const timers = document.querySelectorAll('.timer');
+            timers.forEach(timer => {
+                let seconds = parseInt(timer.dataset.seconds);
+                function update() {
+                    if (seconds > 0) {
+                        timer.textContent = `restam ${seconds} segundos`;
+                        seconds--;
+                    } else {
+                        timer.textContent = 'expirado';
+                    }
+                }
+                update();
+                setInterval(update, 1000);
+            });
+        }
+        document.addEventListener('DOMContentLoaded', startTimers);
+
+        async function atualizarVazao() {
+            try {
+                const response = await fetch("{% url 'vazao_json' %}");
+                const data = await response.json();
+                document.getElementById('vazao-total').textContent = data.vazao_total;
+                document.getElementById('vazao-cache').textContent = data.vazao_cache;
+                document.getElementById('vazao-upstream').textContent = data.vazao_upstream;
+            } catch (err) {
+                console.error('Erro ao atualizar vazão:', err);
             }
         }
-        update();
-        setInterval(update, 1000);
-    });
-}
-document.addEventListener('DOMContentLoaded', startTimers);
-</script>
+        setInterval(atualizarVazao, 1000);
+    </script>
 </body>
 </html>
