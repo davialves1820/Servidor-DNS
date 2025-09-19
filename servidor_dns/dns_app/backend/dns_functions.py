@@ -1,6 +1,6 @@
 import socket  # Permite criar soquetes para enviar e receber pacotes UDP
 from dnslib import DNSRecord, DNSHeader, DNSQuestion, QTYPE, RCODE  # Biblioteca que facilita a criação e análise de pacotes DNS
-from .config import UPSTREAM_DNS
+from config import UPSTREAM_DNS
 
 # Dicionário de tipos de consulta DNS
 QUERY_TYPES = {
@@ -25,7 +25,7 @@ def build_query(domain, query_type="A"):
     request = DNSRecord(q=DNSQuestion(domain, qtype_enum))
     return request.pack()
 
-def query_upstream(domain, query_type="A"):
+def query_upstream(domain, query_type="A", transaction_id = None, timeout = 5):
     """
     Envia uma consulta DNS para o servidor upstream via UDP e retorna a resposta
     """
@@ -37,10 +37,12 @@ def query_upstream(domain, query_type="A"):
             qtype_enum = 1  # Default A
 
         request = DNSRecord(q=DNSQuestion(domain, qtype_enum))
+        if transaction_id is not None:
+            request.header.id = int(transaction_id)
 
         # Cria socket UDP
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.settimeout(5)
+        sock.settimeout(timeout)
 
         # Envia a consulta para o servidor upstream
         sock.sendto(request.pack(), UPSTREAM_DNS)
@@ -48,6 +50,16 @@ def query_upstream(domain, query_type="A"):
         # Recebe a resposta (até 4096 bytes, para respostas maiores)
         resposta_bytes, _ = sock.recvfrom(4096)
         sock.close()
+
+        if transaction_id is not None:
+            try:
+                response = DNSRecord.parse(resposta_bytes)
+                response.header.id = int(transaction_id)
+                return response.pack()
+            except Exception:
+                return resposta_bytes
+
+
         return resposta_bytes
 
     except socket.timeout:
