@@ -1,8 +1,7 @@
 from django.shortcuts import render
-from .backend.dns_functions import query_upstream, parse_query, parse_response, get_blocked_response
+from .backend.dns_functions import query_upstream, parse_response
 from .backend.dns_cache import DNSCache
 from .backend.dns_blocklist import blocklist_cache
-
 import time
 from datetime import datetime
 
@@ -10,89 +9,102 @@ from datetime import datetime
 cache = DNSCache(tamanho_maximo_bytes=50*1024)
 blocklist = blocklist_cache()
 
-# Função para a página de consulta de domínio
+# Histórico das últimas consultas
+historico_consultas = []
+
+# Contadores de hits
+cache_hits = 0
+upstream_hits = 0
+
 def query_domain(request):
-    # Inicializa variáveis para armazenar o resultado, tempo de execução e fonte da consulta
+    """Consulta de domínio via formulário."""
+    global cache_hits, upstream_hits
     result = None
     domain = request.GET.get('domain')
     qtype = request.GET.get('type', 'A')
     cache_key = f"{domain}|{qtype}" if domain else None
-
     elapsed_time = None
-    source = "upstream" # Define o servidor DNS externo
+    source = "upstream"
 
-    # Verifica se o dominio foi fornecido na requisição
     if domain:
-        # Verifica se o dominio está na blocklist
         if blocklist.is_blocked(domain):
             result = f"Domínio {domain} está bloqueado!"
         else:
             start_time = time.time()
-            cached = cache.get_key(cache_key) # Tenta obter a resposta do cache
+            cached = cache.get_key(cache_key)
             if cached:
-                # Recupera apenas os registros do cache
-                result = cached['value']
+                result = cached
                 source = "cache"
+                cache_hits += 1  # Incrementa contador de cache
             else:
-                # Se não encontrou no cache faz a consulta no servidor DNS
                 resposta_bytes = query_upstream(domain, qtype)
-
-                # Verifica se a busca retornou dados
                 if resposta_bytes:
                     registros, ttl = parse_response(resposta_bytes, qtype)
-                    
-                    # Só salva se houver registros válidos
                     if registros:
                         if ttl is None:
                             ttl = 60
-                        cache.set_key(cache_key, {
-                            'value': registros,
-                            'qtype': qtype
-                        }, ttl)
+                        cache.set_key(cache_key, registros, ttl)
                         result = registros
+                        upstream_hits += 1  # Incrementa contador de upstream
                     else:
                         result = f"Nenhum registro válido encontrado para {domain} ({qtype})"
                 else:
                     result = "Falha ao consultar o upstream."
-            
-            end_time = time.time()
-            elapsed_time = end_time - start_time
+            elapsed_time = time.time() - start_time
+
+        # Salva no histórico das últimas consultas
+        historico_consultas.insert(0, {
+            'domain': domain,
+            'qtype': qtype,
+            'result': result,
+            'elapsed_time': f"{elapsed_time:.2f}s" if elapsed_time else None,
+            'source': source,
+            'timestamp': datetime.now()
+        })
+
+        if len(historico_consultas) > 20:
+            historico_consultas.pop()
 
     return render(request, 'dns_app/query_result.html', {
         'domain': domain,
         'qtype': qtype,
         'result': result,
         'elapsed_time': f"{elapsed_time:.2f}s" if elapsed_time else None,
-        'source': source
+        'source': source,
+        'cache_hits': cache_hits,
+        'upstream_hits': upstream_hits
     })
 
 
-# Página inicial com cache
 def index(request):
-    display_cache = {} # Armazenar dados da cache a serem exibidos
+    """Página inicial mostrando cache, blocklist e histórico."""
+    display_cache = {}
 
-    # Itera sobre cada entrada no cache global
+    keys_to_delete = []
     for key, entry in cache.cache.items():
-        # Calcula o tempo restante para a exibição da entrada na cache
         time_left = entry['expire_at'] - datetime.now().timestamp()
-        time_left = max(0, int(time_left))
+        if time_left <= 0:
+            keys_to_delete.append(key)
+            continue
 
-        # Cada item do cache pode ter múltiplos registros
-        registros = entry['value']['value']  # lista de dicionários
+        registros = entry['value']
         formatted_records = []
-
-        # Itera sobre cada registro DNS dentro da cache
         for r in registros:
             formatted_records.append({
-                'name': r['name'],       # será usado como chave
-                'address': r['address'], # será usado como valor
-                'qtype': entry['value']['qtype'],
-                'time_left': time_left
+                'name': r['name'],
+                'address': r['address'],
+                'qtype': r.get('qtype', 'A'),
+                'time_left': int(time_left)
             })
-        
         display_cache[key] = formatted_records
+
+    for key in keys_to_delete:
+        cache.remove(key)
 
     return render(request, 'dns_app/index.html', {
         'cache': display_cache,
         'blocked_domains_count': len(blocklist.blocked_domains),
+        'historico': historico_consultas,
+        'cache_hits': cache_hits,
+        'upstream_hits': upstream_hits
     })

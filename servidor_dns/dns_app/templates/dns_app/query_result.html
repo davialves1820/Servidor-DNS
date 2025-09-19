@@ -3,63 +3,29 @@
 <head>
     <title>Resultado da Consulta DNS</title>
     <style>
-        /* Estilos gerais para o corpo da página */
-        body { 
-            font-family: sans-serif; 
-            margin: 20px; 
-        }
-
-        /* Estilos para o título principal */
-        h1 { 
-            color: #333; 
-        }
-
-        /* Estilos para o elemento, usado para exibir resultados formatados */
-        pre {
-            background-color: #f4f4f4; 
-            padding: 15px; 
-            border: 1px solid #ddd;
-            white-space: pre-wrap;
-            word-wrap: break-word; 
-        }
-
-        /* Estilos para informações adicionais de resultado */
-        .result-info { 
-            margin-top: 20px; 
-            font-size: 0.9em; 
-            color: #555;
-        }
-
-        /* Estilos para links */
-        a { 
-            color: #007bff; 
-            text-decoration: none;
-        }
-
-        /* Estilo ao passar o mouse sobre o link */
-        a:hover { 
-            text-decoration: underline;
-        }
+        body { font-family: sans-serif; margin: 20px; }
+        h1 { color: #333; }
+        pre { background-color: #f4f4f4; padding: 15px; border: 1px solid #ddd; white-space: pre-wrap; word-wrap: break-word; }
+        .result-info { margin-top: 20px; font-size: 0.9em; color: #555; }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { text-decoration: underline; }
     </style>
 </head>
 <body>
-    <h1>Resultado da consulta: {{ domain }} ({{ qtype }})</h1>
-    
-    {% if result %}
-        <p>Fonte da consulta: <b>{{ source }}</b></p>
-        {% if elapsed_time %}
-            <p>Tempo de busca: <b>{{ elapsed_time }}</b></p>
-        {% endif %}
-        <pre>{{ result }}</pre>
-    {% else %}
-        <p>Nenhum resultado.</p>
-    {% endif %}
+<h1>Resultado da consulta: {{ domain }} ({{ qtype }})</h1>
 
-    <div class="result-info">
-        {% if search_time is not None %}
-            <p>Tempo de busca: {{ search_time|floatformat:4 }} segundos</p>
-        {% endif %}
-        <p><a href="{% url 'index' %}">Voltar para a página inicial</a></p>
-    </div>
+{% if result %}
+    <p>Fonte da consulta: <b>{{ source }}</b></p>
+    {% if elapsed_time %}
+        <p>Tempo de busca: <b>{{ elapsed_time }}</b></p>
+    {% endif %}
+    <pre>{{ result }}</pre>
+{% else %}
+    <p>Nenhum resultado.</p>
+{% endif %}
+
+<div class="result-info">
+    <p><a href="{% url 'index' %}">Voltar para a página inicial</a></p>
+</div>
 </body>
 </html>
