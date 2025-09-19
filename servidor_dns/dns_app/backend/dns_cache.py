@@ -4,6 +4,7 @@ import os
 import pickle
 import time
 import atexit
+import threading
 
 class DNSCache:
     def __init__(self, tamanho_maximo_bytes = 10 * 1024, cache_file_path = "./dns_cache.pkl"):
@@ -16,6 +17,8 @@ class DNSCache:
         # OrderedDict preserva a ordem de inserção e permite mover itens para o fim,
         # o que facilita implementar uma política LRU (Least Recently Used).
         self.cache = OrderedDict()
+        # Lock para garantir concorrência segura
+        self._lock = threading.Lock()
 
         # Carregar o cache do disco
         self._load_cache_from_disk()
@@ -88,47 +91,48 @@ class DNSCache:
         """
         Adiciona ou atualiza uma entrada de resposta DNS no cache.
         """
-        
-        # Se já existe, remove antigo (assim atualizamos tamanho e posição)
-        if key in self.cache:
-            self.remove(key)
+        with self._lock:
+            # Se já existe, remove antigo (assim atualizamos tamanho e posição)
+            if key in self.cache:
+                self.remove(key)
 
-        # Estimativa de tamanho da nova entrada
-        tamanho_entrada = self.calculate_entry_size(key, value)
-        # Momento (timestamp) em que a entrada expirará
-        expire_at = time.time() + ttl
+            # Estimativa de tamanho da nova entrada
+            tamanho_entrada = self.calculate_entry_size(key, value)
+            # Momento (timestamp) em que a entrada expirará
+            expire_at = time.time() + ttl
 
-        # Armazena objeto com valor, tempo de expiração e tamanho
-        self.cache[key] = {
-            "value": value,
-            "expire_at": expire_at,
-            "size": tamanho_entrada,
-        }
+            # Armazena objeto com valor, tempo de expiração e tamanho
+            self.cache[key] = {
+                "value": value,
+                "expire_at": expire_at,
+                "size": tamanho_entrada,
+            }
 
-        # Atualiza contador total de bytes no cache
-        self.tamanho_atual_bytes += tamanho_entrada
+            # Atualiza contador total de bytes no cache
+            self.tamanho_atual_bytes += tamanho_entrada
 
-        # Evita ultrapassar o limite: remove itens mais antigos até caber
-        while self.tamanho_atual_bytes > self.tamanho_maximo_bytes:
-            self.remove()
+            # Evita ultrapassar o limite: remove itens mais antigos até caber
+            while self.tamanho_atual_bytes > self.tamanho_maximo_bytes:
+                self.remove()
 
     def get_key(self, key):
         """
         Recupera uma resposta do cache.
         """
-        if key not in self.cache:
-            return None
-        
-        entry = self.cache[key]
-        
-        # Verifica expiração pelo TTL (expire_at)
-        if time.time() > entry["expire_at"]:
-            # Remove a entrada expirada e retorna None
-            self.remove(key)
-            return None
-        
-        # Marca como recentemente usada: move para o fim
-        self.cache.move_to_end(key)
+        with self._lock:
+            if key not in self.cache:
+                return None
+            
+            entry = self.cache[key]
+            
+            # Verifica expiração pelo TTL (expire_at)
+            if time.time() > entry["expire_at"]:
+                # Remove a entrada expirada e retorna None
+                self.remove(key)
+                return None
+            
+            # Marca como recentemente usada: move para o fim
+            self.cache.move_to_end(key)
 
-        # Retorna apenas o valor (ex.: lista de registros A)
-        return entry["value"]
+            # Retorna apenas o valor (ex.: lista de registros A)
+            return entry["value"]
