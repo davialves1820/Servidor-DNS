@@ -4,7 +4,7 @@ import threading
 import urllib.request
 from dnslib import DNSRecord
 
-from config import BLOCKLIST_URLS, BLOCKLIST_CACHE_DIR, BLOCKLIST_CACHE_TTL
+from .config import BLOCKLIST_URLS, BLOCKLIST_CACHE_DIR, BLOCKLIST_CACHE_TTL
 
 class blocklist_cache:
 

@@ -7,7 +7,7 @@ from servidor_dns.dns_app.backend.dns_cache import DNSCache
 from servidor_dns.dns_app.backend.dns_blocklist import blocklist_cache
 from servidor_dns.dns_app.backend.dns_functions import QUERY_TYPES, query_upstream, parse_query, parse_response, get_blocked_response
 
-from config import UPSTREAM_DNS
+from .config import UPSTREAM_DNS
 
 def handle_client(data, addr, server_socket, cache, blocklist):
     """

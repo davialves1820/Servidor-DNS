@@ -1,6 +1,6 @@
 import socket  # Permite criar soquetes para enviar e receber pacotes UDP
 from dnslib import DNSRecord, DNSHeader, DNSQuestion, QTYPE, RCODE  # Biblioteca que facilita a criação e análise de pacotes DNS
-from config import UPSTREAM_DNS
+from .config import UPSTREAM_DNS
 
 # Dicionário de tipos de consulta DNS
 QUERY_TYPES = {
