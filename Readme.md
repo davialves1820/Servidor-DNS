@@ -26,7 +26,66 @@ O sistema atua como um intermediário entre o cliente e os servidores DNS upstre
 
 ---
 
+## Funcionalidades do Servidor DNS Forwarder
+
+## Funcionalidades Principais
+
+### 1. Encaminhamento de Consultas DNS (Forwarding)
+- Recebe consultas DNS dos clientes.
+- Caso o domínio não esteja bloqueado nem no cache, encaminha a consulta para um servidor DNS **upstream** (ex.: `8.8.8.8`, `1.1.1.1`).
+
+### 2. Cache de Respostas DNS (com LRU e TTL)
+- Armazena respostas localmente para reduzir latência e economizar tráfego.
+- Expira entradas conforme o **TTL** retornado pelo upstream.
+- Implementa política de substituição **Least Recently Used (LRU)**.
+- Persiste em disco (`pickle`) e é carregado na inicialização.
+
+### 3. Blocklist de Domínios
+- Baixa e atualiza listas de bloqueio de URLs configuradas.
+- Mantém cache local da blocklist com tempo de validade (TTL).
+- Bloqueia domínios e subdomínios (ex.: `example.com` → `ads.example.com`).
+- Retorna resposta **NXDOMAIN** para domínios bloqueados.
+
+### 4. Respostas DNS Personalizadas
+- **Domínios bloqueados** → gera resposta **NXDOMAIN** mantendo o ID da transação.
+- **Domínios em cache** → monta resposta autoritativa com registros armazenados.
+- **Domínios válidos** → consulta upstream e repassa resposta ao cliente.
+
+### 5. Concorrência com Multithreading
+- Processa múltiplas consultas em paralelo usando threads.
+- Locks garantem consistência no cache e blocklist.
+
+### 6. Monitoramento e Métricas
+- Contadores globais:
+  - **Cache hits** → consultas respondidas pelo cache.
+  - **Upstream hits** → consultas enviadas ao servidor upstream.
+- Histórico de consultas inclui:
+  - Domínio consultado.
+  - Tipo da consulta (A, AAAA, MX, TXT).
+  - Fonte da resposta (cache, upstream, bloqueado).
+  - Tempo de resposta.
+
+### 7. Interface Web (Django)
+- Página inicial exibe:
+  - Estado atual do cache.
+  - Quantidade de domínios bloqueados.
+  - Histórico das últimas consultas.
+  - Contadores de cache hits e upstream hits.
+- Endpoint JSON fornece **vazão de requisições (req/s)**:
+  - Total.
+  - Cache.
+  - Upstream.
+
+### 8. Teste de Desempenho (Vazão)
+- Script de stress test que:
+  - Simula consultas simultâneas com múltiplas threads.
+  - Mede taxa de sucesso, falhas e bloqueios.
+  - Calcula a **vazão média (req/s)**.
+
+
 ## 🗂️ Organização
+
+
 
 ---
 
@@ -53,13 +112,5 @@ O sistema atua como um intermediário entre o cliente e os servidores DNS upstre
 
   deactivate encerra o servidor venv
   ```
-
----
-
-## 📊 Avaliação de Desempenho
-
----
-
-## 🖼️ Demonstração
 
 ---
