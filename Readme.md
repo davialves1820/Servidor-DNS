@@ -26,8 +26,6 @@ O sistema atua como um intermediário entre o cliente e os servidores DNS upstre
 
 ---
 
-## Funcionalidades do Servidor DNS Forwarder
-
 ## Funcionalidades Principais
 
 ### 1. Encaminhamento de Consultas DNS (Forwarding)
