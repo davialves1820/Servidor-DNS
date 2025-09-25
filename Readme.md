@@ -97,7 +97,8 @@ A interface web desenvolvida em Django apresenta:
 - Quantidade de domínios bloqueados.  
 - Métricas de cache hits e upstream hits.  
 
-> *(inserir prints da interface aqui)*
+<img width="1069" height="894" alt="image" src="https://github.com/user-attachments/assets/86451d7d-fed0-4f64-9f0f-13ec4786de14" />
+
 
 ---
 
